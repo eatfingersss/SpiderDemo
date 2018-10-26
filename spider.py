@@ -14,26 +14,23 @@ ua_list = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv2.0.1) Gecko/20100101
            ]
 user_agent = random.choice(ua_list)
 
-global province
-province = ''
-global city
-city = ''
 
 
 class DB(object):
     def __init__(self):
-        self.conn = pymysql.connect(host='127.0.0.1', port=3306, user='maps', passwd='hailhydra', db='JustForTest',
+        self.province=''
+        self.conn = pymysql.connect(host='', port=3306, user='', passwd='', db='',
                                     charset='utf8')
         self.cur = self.conn.cursor()
         #self.num = self.cur.execute()
 
-        def __enter__(self):
-            return self.cur
+    def __enter__(self):
+        return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            self.conn.commit()
-            self.conn.close()
-            self.cur.close()
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.conn.commit()
+        self.conn.close()
+        self.cur.close()
 
 
 def get_page():
@@ -85,14 +82,13 @@ def iterable_judge(target):
 
 
 def out_province(string):
-    province = string
-    ret = conn.execute("insert into map(name,type) values(%s,%s);", (string, 'province'))
-    print(string+':'+ret)
+    conn.province = string
+    ret = conn.cur.execute("insert into maps(name,type) values(%s,%s);", (string, 'province'))
+    print(string+':'+str(ret))
 
 def out_city(string):
-    city = string
-    ret = conn.execute("insert into map(name,dependence,type) values(%s,%s,%s);", (string, province, 'city'))
-    print('\t'+string+':'+ret)
+    ret = conn.cur.execute("insert into maps(name,dependence,type) values(%s,%s,%s);", (string,conn.province, 'city'))
+    print('\t'+string+':'+str(ret))
 
 def main():
     html = get_page()
@@ -105,7 +101,7 @@ def main():
                 break
             elif element.name is None:  # 过滤换行符
                 continue
-                out_city(element.string)  # city
+            out_city(element.string)  # city
 
 
 if __name__ == "__main__":
