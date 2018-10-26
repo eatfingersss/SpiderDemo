@@ -25,15 +25,15 @@ class DB(object):
         self.conn = pymysql.connect(host='127.0.0.1', port=3306, user='maps', passwd='hailhydra', db='JustForTest',
                                     charset='utf8')
         self.cur = self.conn.cursor()
+        #self.num = self.cur.execute()
 
-        # self.num = self.cos.execute()
         def __enter__(self):
             return self.cur
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             self.conn.commit()
             self.conn.close()
-            self.cos.close()
+            self.cur.close()
 
 
 def get_page():
@@ -60,7 +60,7 @@ def get_response(url):
     except Exception as e:
         print('The server couldnt fulfill the request.')
         print('Error code: ' + str(e))
-        exit()
+        
     #    geturl()：返回 full_url地址
     #      info(): 返回页面的元(Html的meta标签)信息
     #      <meta>：可提供有关页面的元信息（meta-information），比如针对搜索引擎和更新频度的描述和关键词。
@@ -86,17 +86,18 @@ def iterable_judge(target):
 
 def out_province(string):
     province = string
-    ret = conn.executemany("insert into map(name,type)values(%s,%s);", [string, 'province'])
-
+    ret = conn.execute("insert into map(name,type) values(%s,%s);", (string, 'province'))
+    print(string+':'+ret)
 
 def out_city(string):
     city = string
-    ret = conn.executemany("insert into map(name,dependence,type)values(%s,%s,%s);", [string, province, 'city'])
-
+    ret = conn.execute("insert into map(name,dependence,type) values(%s,%s,%s);", (string, province, 'city'))
+    print('\t'+string+':'+ret)
 
 def main():
     html = get_page()
     soup = BeautifulSoup(html, "html.parser")
+    print('begin to work')
     for link in soup.find_all('a', {'name': re.compile('[0-9]?[0-9]')}):
         out_province(link.string)  # province
         for element in iterable_judge(link):
