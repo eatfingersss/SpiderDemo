@@ -14,12 +14,15 @@ ua_list = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv2.0.1) Gecko/20100101
            ]
 user_agent = random.choice(ua_list)
 
-
+urls=('http://tutor.eol.cn/web/school/result?type=3&speid=2418&school_id=110',
+		'http://tutor.eol.cn/web/school/result/2?type=3&speid=2418&school_id=110',
+		'http://tutor.eol.cn/web/school/result/3?type=3&speid=2418&school_id=110')
+HOST='http://tutor.eol.cn'
 
 class DB(object):
     def __init__(self):
         self.province=''
-        self.conn = pymysql.connect(host='', port=3306, user='', passwd='', db='',
+        self.conn = pymysql.connect(host='localhost', port=3306, user='root', passwd='root', db='fortest',
                                     charset='utf8')
         self.cur = self.conn.cursor()
         #self.num = self.cur.execute()
@@ -33,8 +36,8 @@ class DB(object):
         self.cur.close()
 
 
-def get_page():
-    url = 'http://maps7.com/china_province.php'  # sys.argv[1]  # input('>>')
+def get_page(url):
+    #url = 'http://maps7.com/china_province.php'  # sys.argv[1]  # input('>>')
     response = get_response(url)
     page = response.read()
     page = page.decode("utf-8")
@@ -42,7 +45,6 @@ def get_page():
     # page = page.decode(charset.get('encode'))
     # print(page)
     return page
-
 
 def get_response(url):
     # url请求对象 Request是一个类
@@ -57,51 +59,42 @@ def get_response(url):
     except Exception as e:
         print('The server couldnt fulfill the request.')
         print('Error code: ' + str(e))
-        
-    #    geturl()：返回 full_url地址
-    #      info(): 返回页面的元(Html的meta标签)信息
-    #      <meta>：可提供有关页面的元信息（meta-information），比如针对搜索引擎和更新频度的描述和关键词。
-    #   getcode(): 返回响应的HTTP状态代码
-    #   100-199 用于指定客户端应相应的某些动作。
-    #   200-299 用于表示请求成功。      ------>  200
-    #   300-399 用于已经移动的文件并且常被包含在定位头信息中指定新的地址信息。
-    #   400-499 用于指出客户端的错误。  ------>  404
-    #   500-599 用于支持服务器错误。
-    #      read(): 读取网页内容，注意解码方式(避免中文和utf-8之间转化出现乱码)
-    # '''
-    # print (url_response)
-
+   
     return urlResponse  # 返回这个对象
 
+def get_detail(url):
+	html = get_page(url)
+	soup = BeautifulSoup(html, "html.parser")
+	one = soup.find_all('div', {'class': re.compile('txt')})[0]#信息界面
+	result='';
+	for a in one.children:#为了混淆代码:-D
+		result+=a.string
+	return result
+    
 
-def iterable_judge(target):
-    if target.next_sibling is not None:
-        return target.next_siblings
-    else:
-        return target.parent.next_siblings
-
-
-def out_province(string):
-    conn.province = string
-    ret = conn.cur.execute("insert into maps(name,type) values(%s,%s);", (string, 'province'))
-    print(string+':'+str(ret))
-
-def out_city(string):
-    ret = conn.cur.execute("insert into maps(name,dependence,type) values(%s,%s,%s);", (string,conn.province, 'city'))
-    print('\t'+string+':'+str(ret))
+def out_(name,message):
+    ret = conn.cur.execute("insert into tutor(name,message) values(%s,%s);", (name, message))
+    print(name+':'+message)
 
 def main():
-    html = get_page()
-    soup = BeautifulSoup(html, "html.parser")
-    print('begin to work')
-    for link in soup.find_all('a', {'name': re.compile('[0-9]?[0-9]')}):
-        out_province(link.string)  # province
-        for element in iterable_judge(link):
-            if element.name == 'hr':  # 只有省份的a标签有name属性
-                break
-            elif element.name is None:  # 过滤换行符
-                continue
-            out_city(element.string)  # city
+	for uu in urls:
+	    html = get_page(uu)
+	    soup = BeautifulSoup(html, "html.parser")
+	    print('begin to work...')
+	    for target in soup.find_all('div', {'class': re.compile('grid list')}):#万一有多个
+	    	for link in target.find_all('a'):#遍历每一个a标签
+	    		try:
+	    			name=''
+		    		#print('get it:'+link.text+'#')
+		    		url=HOST+link.get('href')#得到详细信息链接
+		    		name=link.text#得到姓名
+		    		message=get_detail(url)#得到详细信息
+		    		print('get one：'+name+'...')
+		    		out_(name,message)#入库
+		    		print('done')
+		    	except Exception as e:
+		    		print(name+'not success:'+str(e))
+
 
 
 if __name__ == "__main__":
